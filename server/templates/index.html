@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Démo API sécurisée RSA/AES</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>API sécurisée RSA/AES</h1>
+      <p>
+        Interface de démonstration pour la documentation et la visualisation
+        des principaux points de contrôle du système.
+      </p>
+    </header>
+
+    <section class="card">
+      <h2>Documentation API</h2>
+      <p>Consultez la documentation générée automatiquement par FastAPI.</p>
+      <div class="actions">
+        <a class="btn" href="/docs" target="_blank">Ouvrir Swagger UI</a>
+        <a class="btn secondary" href="/redoc" target="_blank">Ouvrir ReDoc</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>État du serveur</h2>
+      <p>Vérifie rapidement que l’API répond correctement.</p>
+      <div class="actions">
+        <button class="btn" id="btn-health">Tester /health</button>
+      </div>
+      <pre id="health-output">Aucun test lancé.</pre>
+    </section>
+
+    <section class="card">
+      <h2>Clé publique du serveur</h2>
+      <p>Affiche la clé publique RSA exposée par l’API.</p>
+      <div class="actions">
+        <button class="btn" id="btn-public-key">Afficher /public-key</button>
+      </div>
+      <pre id="public-key-output">Aucune clé chargée.</pre>
+    </section>
+
+    <section class="card">
+      <h2>Endpoints principaux</h2>
+      <ul>
+        <li><strong>GET /health</strong> — vérification de disponibilité</li>
+        <li><strong>GET /public-key</strong> — récupération de la clé publique RSA</li>
+        <li><strong>POST /handshake</strong> — établissement d’une session sécurisée</li>
+        <li><strong>POST /message</strong> — envoi d’un message chiffré avec session valide</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

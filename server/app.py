@@ -4,6 +4,9 @@ import json
 import logging
 from contextlib import asynccontextmanager
 
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi import Request
@@ -49,17 +52,38 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="RSA Secure API",
-    description="API sécurisée avec handshake RSA et canal AES de session",
+    title="API sécurisée RSA/AES",
+    description="""
+API de démonstration pour un handshake asymétrique RSA et un canal de session AES-256.
+
+Fonctionnalités principales :
+- génération/chargement des clés RSA 2048 bits
+- récupération de la clé publique
+- établissement d'une session sécurisée
+- échange de messages chiffrés avec AES-GCM
+- contrôle d'accès via X-Session-ID
+""",
     version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
     lifespan=lifespan,
 )
+
 app.add_middleware(
     SecurityMiddleware,
     session_manager=session_manager,
     crypto_service=crypto_service,
     protected_paths={"/message"},
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/ui", response_class=HTMLResponse, tags=["UI"])
+def ui_page(request: Request):
+    return templates.TemplateResponse(request, "index.html", {})
 
 @app.get("/health")
 def health_check() -> dict:
@@ -69,11 +93,13 @@ def health_check() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/public-key", response_model=PublicKeyResponse)
+@app.get(
+    "/public-key",
+    response_model=PublicKeyResponse,
+    summary="Récupérer la clé publique RSA du serveur",
+    tags=["Security"],
+)
 def get_public_key() -> PublicKeyResponse:
-    """
-    Retourne la clé publique du serveur au format PEM.
-    """
     try:
         return PublicKeyResponse(**rsa_key_manager.key_metadata)
     except Exception as exc:
@@ -81,12 +107,17 @@ def get_public_key() -> PublicKeyResponse:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.post("/handshake", response_model=HandshakeResponse)
+@app.post(
+    "/handshake",
+    response_model=HandshakeResponse,
+    summary="Établir une session sécurisée",
+    tags=["Security"],
+    responses={
+        400: {"description": "Handshake invalide"},
+        500: {"description": "Erreur interne du serveur"},
+    },
+)
 def handshake(payload: HandshakeRequest) -> HandshakeResponse:
-    """
-    Reçoit la clé AES de session chiffrée par RSA, la déchiffre,
-    crée une session et retourne un identifiant de session.
-    """
     try:
         aes_key = rsa_key_manager.decrypt_session_key(payload.encrypted_session_key)
 
@@ -108,11 +139,18 @@ def handshake(payload: HandshakeRequest) -> HandshakeResponse:
         logger.exception("Erreur inattendue pendant le handshake.")
         raise HTTPException(status_code=500, detail="Erreur interne du serveur.") from exc
 
-@app.post("/message", response_model=EncryptedMessageResponse)
+@app.post(
+    "/message",
+    response_model=EncryptedMessageResponse,
+    summary="Envoyer un message chiffré via une session valide",
+    tags=["Messaging"],
+    responses={
+        400: {"description": "Payload invalide ou déchiffrement échoué"},
+        401: {"description": "Session absente, invalide ou expirée"},
+        500: {"description": "Erreur interne du serveur"},
+    },
+)
 def post_message(request: Request) -> EncryptedMessageResponse:
-    """
-    Route protégée par le middleware.
-    """
     try:
         session = request.state.session
         decrypted_message = request.state.decrypted_message
@@ -137,7 +175,7 @@ def post_message(request: Request) -> EncryptedMessageResponse:
         logger.exception("Erreur interne lors du traitement de /message.")
         raise HTTPException(status_code=500, detail="Erreur interne du serveur.") from exc
     
-    
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """

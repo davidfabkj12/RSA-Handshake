@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 pydantic
 cryptography
+jinja2
