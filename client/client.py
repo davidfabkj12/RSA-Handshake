@@ -166,7 +166,8 @@ def main() -> None:
     """
     Point d'entrée principal du client.
     """
-    server_base_url = os.getenv("SERVER_BASE_URL", "http://rsa-server:8000")
+    
+    server_base_url = os.getenv("SERVER_BASE_URL", "http://rsa-server:8000").strip()
 
     try:
         client = SecureClientDemo(server_base_url=server_base_url)
