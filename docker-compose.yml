@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  rsa-server:
+    build:
+      context: ./server
+    container_name: rsa-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./keys:/app/keys
+    networks:
+      - secure-net
+
+  rsa-client-demo:
+    build:
+      context: ./client
+    container_name: rsa-client-demo
+    depends_on:
+      - rsa-server
+    environment:
+      SERVER_BASE_URL: http://rsa-server:8000
+    stdin_open: true
+    tty: true
+    networks:
+      - secure-net
+
+networks:
+  secure-net:
+    driver: bridge
